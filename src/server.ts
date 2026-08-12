@@ -17,8 +17,11 @@ app.get("/", (req, res) => {
 
 // routes import
 import userRoute from './routes/user.routes.js';
+import doctorsRoute from './routes/doctor.routes.js';
 
+// routes
 app.use('/api/users', userRoute);
+app.use('/api/doctors', doctorsRoute);
 
 app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
