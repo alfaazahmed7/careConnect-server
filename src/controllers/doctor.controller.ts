@@ -6,7 +6,25 @@ export const getDoctors = async (
     res: Response
 ): Promise<void> => {
     try {
-        const { q, location, specialty, rating, type, sort } = req.query;
+        const {
+            q,
+            location,
+            specialty,
+            rating,
+            type,
+            sort,
+            page: requestedPage,
+            limit: requestedLimit,
+        } = req.query;
+
+        const parsedPage = Number(requestedPage);
+        const parsedLimit = Number(requestedLimit);
+        const page = Number.isInteger(parsedPage) && parsedPage > 0
+            ? parsedPage
+            : 1;
+        const limit = Number.isInteger(parsedLimit) && parsedLimit > 0
+            ? Math.min(parsedLimit, 100)
+            : 8;
 
         // Start with active doctors only
         const query: Record<string, any> = {
@@ -64,35 +82,44 @@ export const getDoctors = async (
             query["professional.consultationTypes"] = String(type);
         }
 
-        // Fetch doctors from MongoDB
-        let doctors = await Doctor.find(query);
+        const total = await Doctor.countDocuments(query);
+        let doctorsQuery = Doctor.find(query);
 
         if (sort === "rating") {
-            doctors = await Doctor.find(query).sort({ "rating.average": -1 });
+            doctorsQuery = doctorsQuery.sort({ "rating.average": -1 });
 
         } else if (sort === "experience") {
-            doctors = await Doctor.find(query).sort({
+            doctorsQuery = doctorsQuery.sort({
                 "professional.experience.years": -1,
             });
 
         } else if (sort === "fee_low") {
-            doctors = await Doctor.find(query).sort({
+            doctorsQuery = doctorsQuery.sort({
                 "professional.consultationFee.inPerson": 1,
             });
 
         } else if (sort === "fee_high") {
-            doctors = await Doctor.find(query).sort({
+            doctorsQuery = doctorsQuery.sort({
                 "professional.consultationFee.inPerson": -1,
             });
 
         } else {
             // recommended (default)
-            doctors = await Doctor.find(query).sort({ "rating.average": -1 });
+            doctorsQuery = doctorsQuery.sort({ "rating.average": -1 });
         }
+
+        const doctors = await doctorsQuery
+            .skip((page - 1) * limit)
+            .limit(limit);
+
+        // console.log(query, 'query');
 
         res.status(200).json({
             success: true,
-            total: doctors.length,
+            total,
+            page,
+            limit,
+            totalPages: Math.ceil(total / limit),
             doctors,
         });
     } catch (error) {
@@ -104,3 +131,39 @@ export const getDoctors = async (
         });
     }
 };
+
+//              URL
+//               │
+//               ▼
+//     /api/doctors?q=heart
+//               │
+//               ▼
+//          req.query
+//               │
+//               ▼
+//   ┌──────────────────────┐
+//   │ Build `query` object  │
+//   └──────────────────────┘
+//               │
+//     ┌─────────┼─────────┐
+//     ▼         ▼         ▼
+//   search   filters    rating
+//     │         │         │
+//     └─────────┼─────────┘
+//               ▼
+//       Doctor.find(query)
+//               │
+//               ▼
+//          MongoDB
+//               │
+//               ▼
+//           doctors
+//               │
+//               ▼
+//            sort()
+//               │
+//               ▼
+//       res.status(200).json()
+//               │
+//               ▼
+//           Frontend
