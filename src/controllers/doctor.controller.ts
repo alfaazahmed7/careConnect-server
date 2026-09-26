@@ -132,6 +132,40 @@ export const getDoctors = async (
     }
 };
 
+export const getDoctorBySlug = async (
+    req: Request,
+    res: Response
+): Promise<void> => {
+    try {
+        const { slug } = req.params;
+        console.log(slug, 'slug');
+
+        const doctor = await Doctor.findOne({
+            "seo.slug": slug,
+        });
+
+        if (!doctor) {
+            res.status(404).json({
+                success: false,
+                message: "Doctor not found",
+            });
+            return;
+        }
+
+        res.status(200).json({
+            success: true,
+            doctor,
+        });
+    } catch (error) {
+        console.error(error);
+
+        res.status(500).json({
+            success: false,
+            message: "Failed to fetch doctor data",
+        });
+    }
+};
+
 //              URL
 //               │
 //               ▼

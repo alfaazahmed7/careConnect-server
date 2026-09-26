@@ -15,9 +15,7 @@ const DoctorSchema = new Schema(
             default: "doctor",
         },
 
-        // ==========================================
         // Account
-        // ==========================================
 
         account: {
             email: {

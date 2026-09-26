@@ -15,6 +15,6 @@ app.get("/", (req, res) => {
 import doctorsRoute from './routes/doctor.routes.js';
 
 // routes
-app.use('/api/doctors', doctorsRoute);
+app.use('/api', doctorsRoute);
 
 export default app;
